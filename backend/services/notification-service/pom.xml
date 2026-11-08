@@ -50,6 +50,12 @@
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
 
+		<!-- Redis: SET NX dedupe so a redelivered booking.confirmed sends no second email / SMS -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
 		<!-- Email -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
