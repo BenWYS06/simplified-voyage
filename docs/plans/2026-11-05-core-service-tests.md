@@ -29,7 +29,7 @@ A service's tests go up once its code is complete on `main`, in a `test/<service
 - [ ] 5. **seat-service** (after build step 6): `SeatInstanceServiceImpl`, `SeatMapServiceImpl`, `SeatServiceImpl`; with the seat concurrency tests.
 - [ ] 6. **booking-service** (after build step 6): `BookingServiceImpl`, `BookingCompensator`, `PaymentEventListener`, `BookingExpiryJob`; with the saga concurrency tests.
 - [ ] 7. **payment-service** (after build step 6): `VnPayService` (signature, amount, RspCode mapping), `PaymentServiceImpl`; with the IPN concurrency tests.
-- [ ] 8. **notification-service** (after build step 8): `BookingNotificationListener` (dedupe, event to email).
+- [x] 8. **notification-service** (after build step 8): `BookingNotificationListener` (dedupe, event to email).
 
 Each task also adds the service to the test step in `backend.yml` if it isn't there yet.
 
