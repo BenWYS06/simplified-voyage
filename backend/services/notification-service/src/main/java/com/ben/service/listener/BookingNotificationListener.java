@@ -2,6 +2,7 @@ package com.ben.service.listener;
 
 import com.ben.common_lib.event.BookingConfirmedEvent;
 import com.ben.service.service.EmailService;
+import com.ben.service.service.NotificationDedupe;
 import com.ben.service.service.SmsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ public class BookingNotificationListener {
 
     private final EmailService emailService;
     private final SmsService smsService;
+    private final NotificationDedupe dedupe;
 
     @KafkaListener(
             topics = "booking.confirmed",
@@ -26,28 +28,40 @@ public class BookingNotificationListener {
         log.info("Received BookingConfirmedEvent: bookingRef={}, email={}",
                 event.getBookingReference(), event.getContactEmail());
 
-        // Send email notification
         if (event.getContactEmail() != null && !event.getContactEmail().isBlank()) {
-            try {
-                emailService.sendBookingConfirmation(event);
-                log.info("Email sent for booking={}", event.getBookingReference());
-            } catch (Exception e) {
-                log.error("Failed to send email for booking={}: {}", event.getBookingReference(), e.getMessage(), e);
-            }
+            sendOnce("email", event, () -> emailService.sendBookingConfirmation(event));
         } else {
             log.warn("No contact email for booking={}, skipping email", event.getBookingReference());
         }
 
-        // Send SMS notification
         if (event.getContactPhone() != null && !event.getContactPhone().isBlank()) {
-            try {
-                smsService.sendBookingConfirmation(event);
-                log.info("SMS sent for booking={}", event.getBookingReference());
-            } catch (Exception e) {
-                log.error("Failed to send SMS for booking={}: {}", event.getBookingReference(), e.getMessage(), e);
-            }
+            sendOnce("sms", event, () -> smsService.sendBookingConfirmation(event));
         } else {
             log.warn("No contact phone for booking={}, skipping SMS", event.getBookingReference());
         }
+    }
+
+    /**
+     * Sends on this channel at most once per booking. A failed send frees the claim and rethrows, so Kafka
+     * retries with backoff and finally parks the message in booking.confirmed.DLT (never silently lost).
+     */
+    private void sendOnce(String channel, BookingConfirmedEvent event, Sender sender) {
+        if (!dedupe.claim(channel, event.getBookingId())) {
+            log.info("{} for booking={} already sent, skipping duplicate", channel, event.getBookingReference());
+            return;
+        }
+        try {
+            sender.send();
+            log.info("{} sent for booking={}", channel, event.getBookingReference());
+        } catch (Exception e) {
+            dedupe.release(channel, event.getBookingId());
+            throw new IllegalStateException(channel + " for booking " + event.getBookingReference() + " failed", e);
+        }
+    }
+
+    // EmailService.sendBookingConfirmation throws checked exceptions, so a plain Runnable won't do
+    @FunctionalInterface
+    private interface Sender {
+        void send() throws Exception;
     }
 }

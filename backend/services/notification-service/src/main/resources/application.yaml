@@ -10,6 +10,12 @@ spring:
   config:
     import: optional:configserver:http://localhost:8888
 
+  # Redis: dedupe keys notif:{email|sms}:{bookingId} (NotificationDedupe)
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
   # ── Kafka Consumer ──────────────────────────────────────────────────────────
   kafka:
     bootstrap-servers: localhost:9092
