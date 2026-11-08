@@ -41,6 +41,6 @@ jobs:
       - name: Compile modules
         run: mvn -B -ntp compile
 
-      # Modules whose tests are ready; context tests start MySQL with Testcontainers. The others join per the plan (stage 4)
+      # Modules with tests: context and concurrency tests start MySQL or PostgreSQL with Testcontainers. Location, pricing and ancillary are compile-only
       - name: Run tests
-        run: mvn -B -ntp test -pl common-lib,cloud/service-registry,cloud/config-server,cloud/api-gateway,services/user-service,services/airline-core-service,services/flight-ops-service,services/notification-service -am
+        run: mvn -B -ntp test -pl common-lib,cloud/service-registry,cloud/config-server,cloud/api-gateway,services/user-service,services/airline-core-service,services/flight-ops-service,services/seat-service,services/booking-service,services/payment-service,services/notification-service -am
