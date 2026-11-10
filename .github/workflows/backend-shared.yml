@@ -1,0 +1,42 @@
+# The backend modules that are not core services: common-lib and the platform services run their tests;
+# location, pricing and ancillary are compile-only (no unit tests planned, see docs/plans/2026-11-05-core-service-tests.md).
+# Each core service has its own workflow; together they cover every Maven module.
+name: backend-shared
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  platform:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: common-lib,cloud/service-registry,cloud/config-server
+      report-name: platform-test-reports
+      paths: |
+        - 'backend/cloud/service-registry/**'
+        - 'backend/cloud/config-server/**'
+        - '.github/workflows/backend-shared.yml'
+
+  compile-only:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/location-service,services/pricing-service,services/ancillary-service
+      run-tests: false
+      report-name: compile-only-reports
+      paths: |
+        - 'backend/services/location-service/**'
+        - 'backend/services/pricing-service/**'
+        - 'backend/services/ancillary-service/**'
+        - '.github/workflows/backend-shared.yml'
