@@ -1,0 +1,28 @@
+# seat-service: seat maps and the seat hold, confirm and release (with the seat concurrency tests).
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: seat-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  seat-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/seat-service
+      report-name: seat-service-test-reports
+      paths: |
+        - 'backend/services/seat-service/**'
+        - '.github/workflows/seat-service.yml'

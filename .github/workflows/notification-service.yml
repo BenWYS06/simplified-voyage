@@ -1,0 +1,28 @@
+# notification-service: booking confirmation email and SMS, sent once per booking.
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: notification-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  notification-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/notification-service
+      report-name: notification-service-test-reports
+      paths: |
+        - 'backend/services/notification-service/**'
+        - '.github/workflows/notification-service.yml'

@@ -1,0 +1,28 @@
+# payment-service: VNPay payment links, IPN and the payment outbox (with the duplicate IPN test).
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: payment-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  payment-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/payment-service
+      report-name: payment-service-test-reports
+      paths: |
+        - 'backend/services/payment-service/**'
+        - '.github/workflows/payment-service.yml'

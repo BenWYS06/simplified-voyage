@@ -1,0 +1,28 @@
+# booking-service: the booking saga, outbox and expiry job (with the saga concurrency tests on PostgreSQL).
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: booking-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  booking-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/booking-service
+      report-name: booking-service-test-reports
+      paths: |
+        - 'backend/services/booking-service/**'
+        - '.github/workflows/booking-service.yml'

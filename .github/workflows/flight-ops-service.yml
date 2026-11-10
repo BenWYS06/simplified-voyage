@@ -1,0 +1,28 @@
+# flight-ops-service: flights, schedules, dated instances and flight search.
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: flight-ops-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  flight-ops-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/flight-ops-service
+      report-name: flight-ops-service-test-reports
+      paths: |
+        - 'backend/services/flight-ops-service/**'
+        - '.github/workflows/flight-ops-service.yml'

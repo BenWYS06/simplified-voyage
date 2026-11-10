@@ -1,0 +1,28 @@
+# user-service: profiles, Keycloak subject to user id, roles and the internal API key.
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: user-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  user-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/user-service
+      report-name: user-service-test-reports
+      paths: |
+        - 'backend/services/user-service/**'
+        - '.github/workflows/user-service.yml'

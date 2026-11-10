@@ -1,0 +1,28 @@
+# airline-core-service: airlines and aircraft, owner and seat-count rules.
+# Builds and tests the service on every PR (skipped when nothing it uses changed) and on every push to main.
+name: airline-core-service
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR cancels the run that is still going; runs on main always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  airline-core-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      modules: services/airline-core-service
+      report-name: airline-core-service-test-reports
+      paths: |
+        - 'backend/services/airline-core-service/**'
+        - '.github/workflows/airline-core-service.yml'
