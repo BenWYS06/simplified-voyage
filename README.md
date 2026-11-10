@@ -1,5 +1,14 @@
 # Ben Airline — Airline GDS Microservices Platform
-[![Backend CI](https://github.com/BenWYS06/AirlineGDS-Mircoservice/actions/workflows/backend.yml/badge.svg)](https://github.com/BenWYS06/AirlineGDS-Mircoservice/actions/workflows/backend.yml)
+[![user-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/user-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/user-service.yml)
+[![airline-core-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/airline-core-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/airline-core-service.yml)
+[![flight-ops-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/flight-ops-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/flight-ops-service.yml)
+[![seat-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/seat-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/seat-service.yml)
+[![booking-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/booking-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/booking-service.yml)
+[![payment-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/payment-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/payment-service.yml)
+[![notification-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/notification-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/notification-service.yml)
+[![api-gateway](https://github.com/BenWYS06/simplified-voyage/actions/workflows/api-gateway.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/api-gateway.yml)
+[![backend-shared](https://github.com/BenWYS06/simplified-voyage/actions/workflows/backend-shared.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/backend-shared.yml)
+[![secret-scan](https://github.com/BenWYS06/simplified-voyage/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/secret-scan.yml)
 
 A production-grade **Airline Global Distribution System (GDS)** built with Spring Boot microservices, event-driven architecture, and cloud-native patterns, plus a React (Vite) web frontend. The platform covers the complete airline booking lifecycle — from flight search and seat selection through payment processing and passenger notifications.
 
