@@ -3,7 +3,7 @@
 **Goal:** each core service gets unit tests for its business rules, written and merged once that service's code is complete on `main`, and CI runs them on every PR.
 
 **Core services:** api-gateway, user-service, airline-core-service, flight-ops-service, seat-service, booking-service, payment-service, notification-service.
-**Scope:** `src/test/` of those services, test dependencies in their `pom.xml`, the test step in `.github/workflows/backend.yml`, `.claude/rules/testing.md`.
+**Scope:** `src/test/` of those services, test dependencies in their `pom.xml`, the service's workflow in `.github/workflows/` (one per core service), `.claude/rules/testing.md`.
 **Out of scope:** tests for location, pricing and ancillary (small catalog services: CI compiles them, nothing more; see ADR-013). Frontend tests. Plain getters, mappers without logic, CRUD that only calls a repository.
 **Contract changes:** none. Tests only; a bug a test finds gets its own `fix(...)` commit.
 
@@ -31,7 +31,7 @@ A service's tests go up once its code is complete on `main`, in a `test/<service
 - [ ] 7. **payment-service** (after build step 6): `VnPayService` (signature, amount, RspCode mapping), `PaymentServiceImpl`; with the IPN concurrency tests.
 - [x] 8. **notification-service** (after build step 8): `BookingNotificationListener` (dedupe, event to email).
 
-Each task also adds the service to the test step in `backend.yml` if it isn't there yet.
+Each service's workflow runs its tests on every PR that touches it, so a new test needs no CI change.
 
 ## Verification
 
