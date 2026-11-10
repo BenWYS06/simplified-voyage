@@ -1,0 +1,63 @@
+name: payment-service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/services/payment-service/**"
+      - "backend/common-lib/**"
+      - "backend/pom.xml"
+      - "backend/services/pom.xml"
+      - ".github/workflows/payment-service.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/services/payment-service/**"
+      - "backend/common-lib/**"
+      - "backend/pom.xml"
+      - "backend/services/pom.xml"
+      - ".github/workflows/payment-service.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  JAVA_VERSION: "17"
+  MODULE: services/payment-service
+
+jobs:
+  verify:
+    name: Test & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      # -am also builds common-lib, so the service is never tested against a stale jar
+      - name: Test & build
+        run: mvn -B -ntp verify -pl ${{ env.MODULE }} -am
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: payment-service-test-reports
+          path: backend/**/target/surefire-reports/
+          retention-days: 7
