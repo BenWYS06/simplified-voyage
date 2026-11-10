@@ -1,0 +1,75 @@
+name: backend-shared
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/common-lib/**"
+      - "backend/cloud/service-registry/**"
+      - "backend/cloud/config-server/**"
+      - "backend/services/location-service/**"
+      - "backend/services/pricing-service/**"
+      - "backend/services/ancillary-service/**"
+      - "backend/pom.xml"
+      - "backend/cloud/pom.xml"
+      - "backend/services/pom.xml"
+      - ".github/workflows/backend-shared.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/common-lib/**"
+      - "backend/cloud/service-registry/**"
+      - "backend/cloud/config-server/**"
+      - "backend/services/location-service/**"
+      - "backend/services/pricing-service/**"
+      - "backend/services/ancillary-service/**"
+      - "backend/pom.xml"
+      - "backend/cloud/pom.xml"
+      - "backend/services/pom.xml"
+      - ".github/workflows/backend-shared.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  JAVA_VERSION: "17"
+
+jobs:
+  verify:
+    name: Test & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Test & build
+        run: mvn -B -ntp verify -pl common-lib,cloud/service-registry,cloud/config-server -am
+
+      # No unit tests planned for these three, so only their main and test code is compiled
+      - name: Compile location, pricing and ancillary
+        run: mvn -B -ntp test-compile -pl services/location-service,services/pricing-service,services/ancillary-service -am
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: backend-shared-test-reports
+          path: backend/**/target/surefire-reports/
+          retention-days: 7
