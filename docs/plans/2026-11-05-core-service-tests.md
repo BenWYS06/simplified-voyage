@@ -28,7 +28,7 @@ A service's tests go up once its code is complete on `main`, in a `test/<service
 - [x] 4. **flight-ops-service**: `FlightSearchServiceImpl`, `FlightInstanceServiceImpl`, `FlightScheduleServiceImpl`, `FlightServiceImpl`; context test on Testcontainers.
 - [x] 5. **seat-service** (after build step 6): `SeatInstanceServiceImpl`, `SeatMapServiceImpl`, `SeatServiceImpl`; with the seat concurrency tests.
 - [ ] 6. **booking-service** (after build step 6): `BookingServiceImpl`, `BookingCompensator`, `PaymentEventListener`, `BookingExpiryJob`; with the saga concurrency tests.
-- [ ] 7. **payment-service** (after build step 6): `VnPayService` (signature, amount, RspCode mapping), `PaymentServiceImpl`; with the IPN concurrency tests.
+- [x] 7. **payment-service** (after build step 6): `VnPayService` (signature, amount, RspCode mapping), `PaymentServiceImpl`; with the IPN concurrency tests.
 - [x] 8. **notification-service** (after build step 8): `BookingNotificationListener` (dedupe, event to email).
 
 Each service's workflow runs its tests on every PR that touches it, so a new test needs no CI change.
