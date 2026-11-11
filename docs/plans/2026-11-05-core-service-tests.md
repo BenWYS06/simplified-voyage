@@ -27,7 +27,7 @@ A service's tests go up once its code is complete on `main`, in a `test/<service
 - [x] 3. **airline-core-service**: `AirlineServiceImpl`, `AircraftServiceImpl`; context test on Testcontainers.
 - [x] 4. **flight-ops-service**: `FlightSearchServiceImpl`, `FlightInstanceServiceImpl`, `FlightScheduleServiceImpl`, `FlightServiceImpl`; context test on Testcontainers.
 - [x] 5. **seat-service** (after build step 6): `SeatInstanceServiceImpl`, `SeatMapServiceImpl`, `SeatServiceImpl`; with the seat concurrency tests.
-- [ ] 6. **booking-service** (after build step 6): `BookingServiceImpl`, `BookingCompensator`, `PaymentEventListener`, `BookingExpiryJob`; with the saga concurrency tests.
+- [x] 6. **booking-service** (after build step 6): `BookingServiceImpl`, `BookingCompensator`, `PaymentEventListener`, `BookingExpiryJob`; with the saga concurrency tests.
 - [x] 7. **payment-service** (after build step 6): `VnPayService` (signature, amount, RspCode mapping), `PaymentServiceImpl`; with the IPN concurrency tests.
 - [x] 8. **notification-service** (after build step 8): `BookingNotificationListener` (dedupe, event to email).
 
@@ -44,3 +44,5 @@ Each service's workflow runs its tests on every PR that touches it, so a new tes
 Plan written 2026-11-05. Tasks 1 and 2 done the same day: 21 new tests, run on a clean copy of `main`; one rule per class broken on purpose and caught by its test.
 
 Tasks 3 and 4 done 2026-11-06: 59 new unit tests, run on a clean copy of `main`; one rule per class broken on purpose and caught. The two context tests move to Testcontainers; Docker was off, so CI is their first run.
+
+Tasks 5 to 8 done 2026-11-08 to 2026-11-12: notification 17, seat 27, payment 24 and booking 35 unit tests, each run locally before its PR and checked again by its service workflow. With the concurrency tests from build step 10, every core service now has its rules covered. Plan complete.
