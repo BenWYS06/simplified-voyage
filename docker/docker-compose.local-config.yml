@@ -1,0 +1,10 @@
+# Local override: config-server reads config-repo/ from this disk instead of GitHub,
+# so config changes work before they are pushed. Add it as a second -f file:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.local-config.yml up -d
+services:
+  config-server:
+    environment:
+      SPRING_PROFILES_ACTIVE: native   # native = read files from a folder, not git
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: "file:/config-repo/"
+    volumes:
+      - ../config-repo:/config-repo:ro   # relative to docker/, read-only
