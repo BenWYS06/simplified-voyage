@@ -31,12 +31,12 @@
 - [x] **1a. Secret scan:** `secret-scan.yml`, gitleaks on every PR and push to `main`.
 - [x] **1b. Compile every module:** `-pl` filter removed in the build step 6 PR (#26).
 - [x] **2. Testcontainers tests:** airline-core and flight-ops context tests (#25), then the seat, booking and payment concurrency tests (#28). Testcontainers works on `ubuntu-latest`.
-- [ ] **3. Core service unit tests:** each core service's tests run in CI as they land ([plan](2026-11-05-core-service-tests.md)). Done: gateway, user, airline-core, flight-ops, notification, seat. Left: booking, payment (no CI change needed, their workflows pick them up).
+- [x] **3. Core service unit tests:** each core service's tests run in its own workflow ([plan](2026-11-05-core-service-tests.md)): gateway, user, airline-core, flight-ops, notification, seat, payment, booking, all on `main` by #33.
 - [x] **4. One workflow per service:** `backend.yml` replaced by the layout above. README shows a badge per workflow.
 - [ ] **5. Branch protection** (owner, GitHub settings): rule on `main`: require a pull request and require the `Secret scan (gitleaks)` check, which runs on every PR. The service checks are not marked required: with path filters a PR that doesn't touch a service never runs its check, and GitHub would wait for it forever. A red service check is still visible on the PR and is not merged.
 - [ ] **6. Frontend build:** `frontend.yml`, Node 22 with npm cache, `npm ci` + `npm run build` from `frontend/`, same template, triggered on `frontend/**`. Added when the frontend on `main` is complete (routes and pages), so the build has every import it needs.
 - [ ] **7. Frontend lint:** fix the ESLint errors (unused code removed, `vite.config.js` gets the Node globals), then add `npm run lint` to the frontend job.
-- [ ] **8. Docker images (CD):** after the docker stack PR, each service workflow gets a `docker` job after `verify`: on `main` it runs `mvn jib:build` and pushes `ghcr.io/benwys06/<service>` tagged `latest` and with the commit SHA, using the built-in `GITHUB_TOKEN`; on a PR it only builds. Jib is already configured in each `pom.xml`, so no Dockerfiles.
+- [x] **8. Docker images (CD):** each service workflow has a `docker` job after `verify` (`backend-shared` runs it as a matrix for service-registry, config-server, location, pricing and ancillary). On `main`: `mvn jib:build` pushes `ghcr.io/benwys06/<service>` tagged with the commit SHA and `latest`, using the built-in `GITHUB_TOKEN`. On a PR: `jib:buildTar`, so a broken image config fails the PR without pushing anything. Jib is configured in each `pom.xml`, so there are no Dockerfiles.
 - [ ] **9. Release:** `release.yml` on a `v*` tag: a GitHub Release with that version's notes from `CHANGELOG.md`, linking the images from stage 8. First use: `v0.1.0`.
 - [ ] **10. Dependency updates:** `.github/dependabot.yml`, weekly, grouped per ecosystem (GitHub Actions, Maven, npm), after `v0.1.0` so the PR flow is not flooded while the code is still landing.
 
@@ -48,4 +48,4 @@
 
 ## Result
 
-Stage 1 written 2026-9-26, changed 2026-9-28 to start before the backend was complete. Merged in PR #21; green on that PR, on #22 and on `main`. Stage 4 written 2026-11-10, after the whole backend reached `main`.
+Stage 1 written 2026-9-26, changed 2026-9-28 to start before the backend was complete. Merged in PR #21; green on that PR, on #22 and on `main`. Stage 4 written 2026-11-10, after the whole backend reached `main`. Stage 8 written 2026-11-13 with the docker stack: the PR path (`jib:buildTar` with the GHCR name) checked locally on seat-service; the push path runs for the first time on `main` after merge.
