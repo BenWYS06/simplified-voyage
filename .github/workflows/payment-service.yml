@@ -33,6 +33,7 @@ defaults:
 env:
   JAVA_VERSION: "17"
   MODULE: services/payment-service
+  IMAGE: ghcr.io/benwys06/payment-service
 
 jobs:
   verify:
@@ -61,3 +62,44 @@ jobs:
           name: payment-service-test-reports
           path: backend/**/target/surefire-reports/
           retention-days: 7
+
+  docker:
+    name: Docker image
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      # Installs common-lib and the parent poms, so Jib can run on the service module alone
+      - name: Package
+        run: mvn -B -ntp install -pl ${{ env.MODULE }} -am -DskipTests
+
+      # Jib builds the image from the pom (no Dockerfile). main: push to GHCR as latest + commit SHA
+      - name: Build and push image
+        if: env.PUBLISH == 'true'
+        run: >
+          mvn -B -ntp jib:build -pl ${{ env.MODULE }}
+          -Djib.to.image=${{ env.IMAGE }}:${{ github.sha }}
+          -Djib.to.tags=latest
+          -Djib.to.auth.username=${{ github.actor }}
+          -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
+          -Djib.container.labels=org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      # PR: build the image without pushing, so a broken image config fails the PR
+      - name: Build image
+        if: env.PUBLISH != 'true'
+        run: mvn -B -ntp jib:buildTar -pl ${{ env.MODULE }} -Djib.to.image=${{ env.IMAGE }}:pr
