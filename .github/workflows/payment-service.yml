@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,12 +35,13 @@ env:
   JAVA_VERSION: "17"
   MODULE: services/payment-service
   IMAGE: ghcr.io/benwys06/payment-service
+  PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
 
 jobs:
-  verify:
-    name: Test & build
+  build:
+    name: Test, build & image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -51,9 +53,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: maven
 
-      # -am also builds common-lib, so the service is never tested against a stale jar
+      # -am also builds common-lib; install keeps it in the local repo so Jib can run on the service alone
       - name: Test & build
-        run: mvn -B -ntp verify -pl ${{ env.MODULE }} -am
+        run: mvn -B -ntp install -pl ${{ env.MODULE }} -am
 
       - name: Upload test reports
         if: failure()
@@ -63,33 +65,8 @@ jobs:
           path: backend/**/target/surefire-reports/
           retention-days: 7
 
-  docker:
-    name: Docker image
-    needs: verify
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    env:
-      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: maven
-
-      # Installs common-lib and the parent poms, so Jib can run on the service module alone
-      - name: Package
-        run: mvn -B -ntp install -pl ${{ env.MODULE }} -am -DskipTests
-
-      # Jib builds the image from the pom (no Dockerfile). main: push to GHCR as latest + commit SHA
-      - name: Build and push image
+      # Jib builds the image from the pom (no Dockerfile); main pushes it to GHCR as the commit SHA and latest
+      - name: Push image
         if: env.PUBLISH == 'true'
         run: >
           mvn -B -ntp jib:build -pl ${{ env.MODULE }}

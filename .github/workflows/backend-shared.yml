@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -42,12 +43,14 @@ defaults:
 
 env:
   JAVA_VERSION: "17"
+  IMAGE_MODULES: cloud/service-registry cloud/config-server services/location-service services/pricing-service services/ancillary-service
+  PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
 
 jobs:
-  verify:
-    name: Test & build
+  build:
+    name: Test, build & image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -60,11 +63,11 @@ jobs:
           cache: maven
 
       - name: Test & build
-        run: mvn -B -ntp verify -pl common-lib,cloud/service-registry,cloud/config-server -am
+        run: mvn -B -ntp install -pl common-lib,cloud/service-registry,cloud/config-server -am
 
-      # No unit tests planned for these three, so only their main and test code is compiled
-      - name: Compile location, pricing and ancillary
-        run: mvn -B -ntp test-compile -pl services/location-service,services/pricing-service,services/ancillary-service -am
+      # No unit tests planned for these three, so their tests are compiled but not run
+      - name: Build location, pricing and ancillary
+        run: mvn -B -ntp install -pl services/location-service,services/pricing-service,services/ancillary-service -am -DskipTests
 
       - name: Upload test reports
         if: failure()
@@ -74,53 +77,23 @@ jobs:
           path: backend/**/target/surefire-reports/
           retention-days: 7
 
-  docker:
-    name: Docker image (${{ matrix.name }})
-    needs: verify
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { name: service-registry, module: cloud/service-registry }
-          - { name: config-server, module: cloud/config-server }
-          - { name: location-service, module: services/location-service }
-          - { name: pricing-service, module: services/pricing-service }
-          - { name: ancillary-service, module: services/ancillary-service }
-    env:
-      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-      IMAGE: ghcr.io/benwys06/${{ matrix.name }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: maven
-
-      # Installs common-lib and the parent poms, so Jib can run on the module alone
-      - name: Package
-        run: mvn -B -ntp install -pl ${{ matrix.module }} -am -DskipTests
-
-      # Jib builds the image from the pom (no Dockerfile). main: push to GHCR as latest + commit SHA
-      - name: Build and push image
+      # One image per module, named after its folder; main pushes them to GHCR as the commit SHA and latest
+      - name: Push images
         if: env.PUBLISH == 'true'
-        run: >
-          mvn -B -ntp jib:build -pl ${{ matrix.module }}
-          -Djib.to.image=${{ env.IMAGE }}:${{ github.sha }}
-          -Djib.to.tags=latest
-          -Djib.to.auth.username=${{ github.actor }}
-          -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
-          -Djib.container.labels=org.opencontainers.image.source=https://github.com/${{ github.repository }}
+        run: |
+          for module in $IMAGE_MODULES; do
+            mvn -B -ntp jib:build -pl "$module" \
+              -Djib.to.image=ghcr.io/benwys06/$(basename "$module"):${{ github.sha }} \
+              -Djib.to.tags=latest \
+              -Djib.to.auth.username=${{ github.actor }} \
+              -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }} \
+              -Djib.container.labels=org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          done
 
-      # PR: build the image without pushing, so a broken image config fails the PR
-      - name: Build image
+      # PR: build the images without pushing, so a broken image config fails the PR
+      - name: Build images
         if: env.PUBLISH != 'true'
-        run: mvn -B -ntp jib:buildTar -pl ${{ matrix.module }} -Djib.to.image=${{ env.IMAGE }}:pr
+        run: |
+          for module in $IMAGE_MODULES; do
+            mvn -B -ntp jib:buildTar -pl "$module" -Djib.to.image=ghcr.io/benwys06/$(basename "$module"):pr
+          done

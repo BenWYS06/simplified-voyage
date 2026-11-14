@@ -20,7 +20,7 @@
 | `backend-shared` | `common-lib`, service-registry, config-server; location, pricing, ancillary | Tests for the first three; the last three compile only |
 | `secret-scan` | gitleaks on new commits; manual run scans all history | — |
 | `frontend` (stage 6) | `npm ci`, lint, build | — |
-| `docker` job (stage 8) | Added to each service workflow: its Jib image | — |
+| Image steps (stage 8) | Last steps of each service job: its Jib image | — |
 | `release` (stage 9) | GitHub Release on a `v*` tag | — |
 
 **Triggers:** a workflow runs when its service, `common-lib` or a parent `pom.xml` changes, so a `common-lib` change runs every service (they all depend on it) and a seat-only PR runs only seat. `-am` builds `common-lib` too, so a stale jar is never used.
@@ -36,7 +36,7 @@
 - [ ] **5. Branch protection** (owner, GitHub settings): rule on `main`: require a pull request and require the `Secret scan (gitleaks)` check, which runs on every PR. The service checks are not marked required: with path filters a PR that doesn't touch a service never runs its check, and GitHub would wait for it forever. A red service check is still visible on the PR and is not merged.
 - [ ] **6. Frontend build:** `frontend.yml`, Node 22 with npm cache, `npm ci` + `npm run build` from `frontend/`, same template, triggered on `frontend/**`. Added when the frontend on `main` is complete (routes and pages), so the build has every import it needs.
 - [ ] **7. Frontend lint:** fix the ESLint errors (unused code removed, `vite.config.js` gets the Node globals), then add `npm run lint` to the frontend job.
-- [x] **8. Docker images (CD):** each service workflow has a `docker` job after `verify` (`backend-shared` runs it as a matrix for service-registry, config-server, location, pricing and ancillary). On `main`: `mvn jib:build` pushes `ghcr.io/benwys06/<service>` tagged with the commit SHA and `latest`, using the built-in `GITHUB_TOKEN`. On a PR: `jib:buildTar`, so a broken image config fails the PR without pushing anything. Jib is configured in each `pom.xml`, so there are no Dockerfiles.
+- [x] **8. Docker images (CD):** the image is the last step of each service's single job, so every workflow is one check: test & build, then the image. On `main`: `mvn jib:build` pushes `ghcr.io/benwys06/<service>` tagged with the commit SHA and `latest`, using the built-in `GITHUB_TOKEN` (`backend-shared` loops over service-registry, config-server, location, pricing and ancillary). On a PR: `jib:buildTar`, so a broken image config fails the PR without pushing anything. Jib is configured in each `pom.xml`, so there are no Dockerfiles.
 - [ ] **9. Release:** `release.yml` on a `v*` tag: a GitHub Release with that version's notes from `CHANGELOG.md`, linking the images from stage 8. First use: `v0.1.0`.
 - [ ] **10. Dependency updates:** `.github/dependabot.yml`, weekly, grouped per ecosystem (GitHub Actions, Maven, npm), after `v0.1.0` so the PR flow is not flooded while the code is still landing.
 
@@ -48,4 +48,4 @@
 
 ## Result
 
-Stage 1 written 2026-9-26, changed 2026-9-28 to start before the backend was complete. Merged in PR #21; green on that PR, on #22 and on `main`. Stage 4 written 2026-11-10, after the whole backend reached `main`. Stage 8 written 2026-11-13 with the docker stack: the PR path (`jib:buildTar` with the GHCR name) checked locally on seat-service; the push path runs for the first time on `main` after merge.
+Stage 1 written 2026-9-26, changed 2026-9-28 to start before the backend was complete. Merged in PR #21; green on that PR, on #22 and on `main`. Stage 4 written 2026-11-10, after the whole backend reached `main`. Stage 8 written 2026-11-13 with the docker stack: the PR path (`jib:buildTar` with the GHCR name) checked locally on seat-service; the push path first ran on `main` after #35 (all images pushed). Changed 2026-11-14 from a separate `docker` job to steps in the one job, so each workflow shows one check (10 in total instead of 23).
