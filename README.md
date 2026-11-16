@@ -15,6 +15,20 @@ A production-grade **Airline Global Distribution System (GDS)** built with Sprin
 
 > **Built with Claude Code.** This project is developed with an AI-assisted workflow: designs are agreed section by section, every step is approved before code is written, and every change is verified before it is committed. See [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) for the loop, and [docs/booking-refactor/](docs/booking-refactor/) for a full worked example (booking saga: idempotency, row locks, deadlock avoidance, transactional outbox).
 
+## Documentation
+
+| Start here | |
+|---|---|
+| [ONBOARDING.md](ONBOARDING.md) | Run the system and make your first change |
+| [docs/architecture.md](docs/architecture.md) · [docs/authentication.md](docs/authentication.md) | How the services and the login flow fit together |
+| [docs/api-spec.md](docs/api-spec.md) | Every endpoint with its access rule, booking statuses, Kafka topics |
+| [docs/environments.md](docs/environments.md) · [docs/runbooks/](docs/runbooks/local-stack.md) | Configuration, local stack, troubleshooting |
+| [docs/decisions.md](docs/decisions.md) · [docs/specs/](docs/specs/README.md) · [docs/plans/](docs/plans/README.md) | Why things are built this way, the designs and the plans |
+| [docs/roadmap.md](docs/roadmap.md) · [TODO.md](TODO.md) · [CHANGELOG.md](CHANGELOG.md) | What is done, what comes next |
+| [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) | How to contribute, how to report a vulnerability |
+
+Each service also has its own `README.md` in `backend/services/<service>/`.
+
 ---
 
 ## Table of Contents
