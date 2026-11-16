@@ -1,4 +1,5 @@
 # Ben Airline — Airline GDS Microservices Platform
+
 [![user-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/user-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/user-service.yml)
 [![airline-core-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/airline-core-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/airline-core-service.yml)
 [![flight-ops-service](https://github.com/BenWYS06/simplified-voyage/actions/workflows/flight-ops-service.yml/badge.svg)](https://github.com/BenWYS06/simplified-voyage/actions/workflows/flight-ops-service.yml)
@@ -92,7 +93,7 @@ A production-grade **Airline Global Distribution System (GDS)** built with Sprin
 - **Seat Selection** — Interactive cabin-class seat map with availability status (window, aisle, middle, extra legroom)
 - **Ancillary Services** — Add meals, insurance, and other add-ons at booking
 - **Booking Management** — View, modify, and cancel bookings; track status in real time
-- **Payment Processing** — Razorpay and Stripe integration with secure payment verification
+- **Payment Processing** — VNPay integration (signed payment URL, IPN callback as source of truth)
 - **Booking Confirmation Email** — Production-grade HTML email with flight details, passenger list, ticket numbers, fare breakdown, baggage allowance, fare benefits, and payment receipt
 - **SMS Notification** — Instant booking confirmation via Twilio
 - **Ticket Management** — E-ticket generation with unique ticket numbers per passenger
@@ -172,7 +173,8 @@ A production-grade **Airline Global Distribution System (GDS)** built with Sprin
 | **Config Server** | 8888 | Centralized config pulled from Git (`config-repo/`) for all services |
 | **Service Registry** | 8761 | Eureka — service registration and discovery |
 | **Kafka** | 9092 | Event streaming (KRaft mode — no Zookeeper) |
-| **MySQL** | varies | Dedicated database per business service |
+| **MySQL** | varies | Dedicated database per business service (except booking) |
+| **PostgreSQL** | 5432 | booking-service database (partial unique index for idempotent create) |
 
 ### Business Services
 
@@ -185,8 +187,8 @@ A production-grade **Airline Global Distribution System (GDS)** built with Sprin
 | **seat-service** | dynamic | `airline_seat_db` | Consumer + Producer | Seat maps, cabin config, availability, pricing |
 | **pricing-service** | dynamic | `airline_pricing_db` | — | Fares, baggage policies, fare rules |
 | **ancillary-service** | dynamic | `airline_ancillary_db` | — | Meals, insurance, ancillary catalogue |
-| **booking-service** | dynamic | `airline_booking_db` | Consumer | Bookings, passengers, tickets, statistics |
-| **payment-service** | dynamic | `airline_payment_db` | Producer | Razorpay/Stripe integration, verification, refunds |
+| **booking-service** | dynamic | `airline_booking_db` (PostgreSQL) | Consumer | Bookings, passengers, tickets, statistics |
+| **payment-service** | dynamic | `airline_payment_db` | Producer | VNPay integration (payment URL, IPN, return URL check) |
 | **notification-service** | 8094 | — | Consumer | Email (Gmail SMTP / Thymeleaf) + SMS (Twilio) |
 
 ---
@@ -227,31 +229,33 @@ Client → API Gateway → booking-service
   ├─ 3.  Validate ancillaries  [Feign] → ancillary-service
   ├─ 4.  Fetch fare            [Feign] → pricing-service
   ├─ 5.  Create Booking (status: PENDING)
-  ├─ 6.  Initiate payment      [Feign] → payment-service → Razorpay/Stripe
+  ├─ 6.  Initiate payment      [Feign] → payment-service → signed VNPay URL
   └─ 7.  Return payment URL to client
          │
          │  [Client completes payment on gateway]
          │
   ┌──────▼──────────────────────────────────────────────────────────┐
-  │  payment-service receives callback from Razorpay / Stripe       │
-  │  → Verify signature                                             │
+  │  payment-service receives the VNPay IPN (server-to-server)      │
+  │  → Verify signature, amount, not already processed              │
   │  → Publish PaymentCompletedEvent ─────────────► Kafka           │
   └──────────────────────────────────────────────────────────────────┘
          │
          ▼  [Kafka: payment.completed]
   ┌──────────────────────────────────────────────────────────────────┐
-  │  booking-service (PaymentEventListener)                         │
-  │  → Update Booking status to CONFIRMED                           │
+  │  booking-service (PaymentEventListener, saga orchestrator)      │
+  │  → Confirm seats in seat-service (sync, HELD → BOOKED) [Feign]  │
+  │  → Booking AWAITING_PAYMENT / EXPIRED → CONFIRMED               │
+  │    (seats lost / booking cancelled → REFUND_REQUIRED)           │
   │  → Fetch FlightInstance, Fare, User details [Feign]             │
   │  → Publish BookingConfirmedEvent ──────────────► Kafka          │
   └──────────────────────────────────────────────────────────────────┘
          │
-         ▼  [Kafka: booking.confirmed]  (two parallel consumers)
-  ┌──────────────────┐       ┌──────────────────────────────────────┐
-  │   seat-service   │       │        notification-service          │
-  │  Mark seats as   │       │  Send confirmation email (HTML)      │
-  │  BOOKED          │       │  Send SMS via Twilio                 │
-  └──────────────────┘       └──────────────────────────────────────┘
+         ▼  [Kafka: booking.confirmed]
+  ┌──────────────────────────────────────┐
+  │        notification-service          │
+  │  Send confirmation email (HTML)      │
+  │  Send SMS via Twilio                 │
+  └──────────────────────────────────────┘
 ```
 
 ### Booking Confirmation Email Content
@@ -304,6 +308,7 @@ The HTML email sent after a confirmed booking includes:
 |---|---|---|
 | Apache Kafka | 4.1.1 | Async event streaming (KRaft — no Zookeeper) |
 | MySQL | 8.0 | Primary relational database (one DB per service) |
+| PostgreSQL | 16 | booking-service database |
 | Eureka Server | Spring Cloud | Service discovery and registration |
 | Spring Cloud Config | Spring Cloud | Git-backed centralised configuration |
 | Spring Cloud Gateway | Spring Cloud | API gateway with WebMVC routing |
@@ -327,8 +332,7 @@ The HTML email sent after a confirmed booking includes:
 
 | Gateway | Purpose |
 |---|---|
-| Razorpay | Primary payment gateway (India) |
-| Stripe | Alternative payment gateway (global) |
+| VNPay | Payment gateway (Vietnam, sandbox) |
 
 ### Notifications
 
@@ -380,7 +384,7 @@ The HTML email sent after a confirmed booking includes:
 | Pattern | Where Used |
 |---|---|
 | **Event Sourcing** | Kafka topics carry state-change events (`BookingConfirmedEvent`, `PaymentCompletedEvent`) |
-| **Pub/Sub** | `booking.confirmed` consumed by both `seat-service` and `notification-service` |
+| **Saga orchestration** | booking-service confirms seats itself after payment; `booking.confirmed` is consumed by `notification-service` |
 | **Event Enrichment** | `BookingEventProducer` enriches event with user, flight, fare, baggage data before publishing |
 | **Consumer Groups** | Each service has its own group ID — each gets its own copy of every message |
 
@@ -499,17 +503,16 @@ endpoint. The frontend uses the `airline-frontend` public client with Authorizat
   ]
 }
 ```
-**Returns:** `PaymentInitiateResponse` with `checkoutUrl` for Razorpay/Stripe
+**Returns:** `PaymentInitiateResponse` with `checkoutUrl` (VNPay payment page)
 
-### Verify Payment — `POST /api/payments/verify`
-```json
-{
-  "razorpayPaymentId": "pay_xyz",
-  "razorpayOrderId": "order_abc",
-  "razorpaySignature": "sig_123"
-}
-```
+### VNPay IPN — `GET /api/payments/vnpay/ipn?vnp_...`
+Called by VNPay's servers (public route, no JWT). Verifies the signature and amount, ignores repeats,
+marks the payment SUCCESS/FAILED and answers `{"RspCode":"00","Message":"Confirm Success"}`.
 **On success:** triggers the event chain → booking confirmed → seats reserved → email + SMS sent
+
+### VNPay Return — `GET /api/payments/vnpay/return?vnp_...`
+Called by the FE after VNPay redirects the browser back. Only checks the signature for display;
+it never changes the payment.
 
 ### Common Response Shapes
 
@@ -680,9 +683,12 @@ docker compose -f docker/docker-compose.yml up -d keycloak keycloakdb userdb red
 # Create all service databases in your local MySQL (localhost:3306), once
 mysql -u root -p < docker/init-databases.sql
 
+# booking-service uses PostgreSQL instead (localhost:5432, user/password postgres)
+docker compose -f docker/docker-compose.dev.yml up -d postgres
+
 # Then start individual services from their directory
 # (DB_PASSWORD = your local MySQL root password; defaults to "root")
-cd backend/services/booking-service
+cd backend/services/seat-service
 DB_PASSWORD=<your-mysql-password> mvn spring-boot:run
 ```
 
@@ -715,12 +721,10 @@ TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_FROM_NUMBER=+1xxxxxxxxxx
 TWILIO_ENABLED=true
 
-# Payment — Razorpay
-RAZORPAY_KEY_ID=<your-razorpay-key-id>
-RAZORPAY_KEY_SECRET=<your-razorpay-key-secret>
-
-# Payment — Stripe
-STRIPE_API_KEY=<your-stripe-secret-key>
+# Payment — VNPay sandbox (https://sandbox.vnpayment.vn/devreg/)
+VNPAY_TMN_CODE=<your-vnpay-tmn-code>
+VNPAY_HASH_SECRET=<your-vnpay-hash-secret>
+VNPAY_RETURN_URL=http://localhost:5173/booking-success
 
 # Keycloak / gateway
 KEYCLOAK_ADMIN=admin
