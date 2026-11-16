@@ -52,6 +52,10 @@ After a PR is merged, delete its branch on GitHub.
 - [ ] No secrets; new env vars added to `docker/.env.example` as placeholders
 - [ ] Docs updated (PROGRESS, README, CHANGELOG) where relevant
 
+## New here?
+
+[ONBOARDING.md](ONBOARDING.md) gets the stack running. Bigger changes start with a design in `docs/specs/` and a plan in `docs/plans/`; bugs follow the root-cause steps in `.claude/skills/fix-issue/SKILL.md`. Security problems: see [SECURITY.md](SECURITY.md), not a public issue.
+
 ## How this repo uses AI
 
 See [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md).
