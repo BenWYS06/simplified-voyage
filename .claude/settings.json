@@ -1,24 +1,77 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(mvn -q compile:*)",
       "Bash(mvn compile:*)",
       "Bash(mvn -q test:*)",
+      "Bash(mvn test:*)",
+      "Bash(mvn -q verify:*)",
       "Bash(npm run build)",
       "Bash(npm run lint)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git branch:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(git grep:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git fetch:*)",
+      "Bash(git push origin:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(docker compose config:*)",
+      "Bash(docker ps:*)"
+    ],
+    "ask": [
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git rebase:*)",
+      "Bash(git merge:*)",
+      "Bash(docker compose down:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [
       "Read(**/.env)",
       "Read(**/.env.*.local)",
+      "Edit(**/.env)",
+      "Write(**/.env)",
+      "Bash(cat *.env:*)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push origin --force:*)",
+      "Bash(git push origin -f:*)",
+      "Bash(git push origin --force-with-lease:*)",
       "Bash(git reset --hard:*)",
-      "Bash(git clean:*)"
+      "Bash(git clean:*)",
+      "Bash(git stash drop:*)",
+      "Bash(docker compose down -v:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/show-open-plans.js\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-migrations.js\""
+          }
+        ]
+      }
     ]
   }
 }
