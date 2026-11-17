@@ -6,11 +6,15 @@
 
 ---
 
+## Type of response 
+
+Always give the main point first. Keep answers brief and practical. Use plain text, simple English.
+
 ## Project: Ben Airline, an Airline GDS on microservices
 
 Spring Boot 4 microservices (Maven multi-module) + React 19 / Vite frontend. Covers the booking lifecycle: flight search → seat selection → booking → VNPay payment → notification.
 
-**Current work: booking flow refactor.** The booking saga is being rebuilt to practise the core distributed-systems patterns: idempotency, row locks, deadlock avoidance, race conditions, saga orchestration and the transactional outbox. Before touching anything in that area, read:
+**Booking flow refactor: done** (build steps 1–10, concurrency tests green). The booking saga was rebuilt to practise the core distributed-systems patterns: idempotency, row locks, deadlock avoidance, race conditions, saga orchestration and the transactional outbox. **Next:** [CI](docs/plans/2026-11-04-ci-pipeline.md) and [core service tests](docs/plans/2026-11-05-core-service-tests.md), then [observability and performance](docs/plans/2026-10-31-observability-and-performance.md). Open plans are printed at session start; the status of record is [docs/plans/README.md](docs/plans/README.md). Before touching the booking, seat or payment flow, read:
 
 1. [docs/booking-refactor/PLAN.md](docs/booking-refactor/PLAN.md): goals, locked decisions, scope.
 2. [docs/booking-refactor/PROGRESS.md](docs/booking-refactor/PROGRESS.md): current step, what's next.
@@ -96,11 +100,24 @@ After a change: grep every usage of changed symbols across `backend/`, `frontend
 
 ## Reference docs (load on demand)
 
+- Where we are now: newest file in `docs/handoff/`; open work: `TODO.md`; milestones: `docs/roadmap.md`
 - Architecture and data flows: `docs/architecture.md`
 - Authentication (Keycloak → gateway → services): `docs/authentication.md`
+- Every endpoint, access rule and Kafka topic: `docs/api-spec.md`
+- Config layering, env variables, ways to run: `docs/environments.md`; runbooks: `docs/runbooks/`
+- Designs (specs) and plans: `docs/specs/`, `docs/plans/`
 - Architecture decisions: `docs/decisions.md`
+- Observability today and planned: `docs/observability.md`
 - VNPay sandbox setup: `docs/booking-refactor/VNPAY.md`
+- Per-service context: `backend/services/<service>/README.md`; `CLAUDE.md` in booking-service, seat-service, payment-service and `frontend/`
 - Release notes: `CHANGELOG.md`
+
+## Agents and skills
+
+- Feature loop: `/add-feature` → `feature-planner` → `backend-dev` / `web-dev` → `qa-agent` + `code-reviewer` → `/ship-pr`
+- Refactor steps: `/implement-step`; bugs: `/fix-issue`; new service: `/new-service`; full check: `/qc-check`
+- Reviews: `concurrency-reviewer` (seats, booking status, payments, consumers, jobs), `perf-reviewer` (slow endpoints), `impact-scanner` (before renaming or removing)
+- End of a long session: `/session-handoff`
 
 ## Compaction instructions
 
