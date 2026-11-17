@@ -30,7 +30,14 @@ First decide which kind of work this was.
 
 Never write feature progress into the refactor's PROGRESS.md.
 
-## C. CHANGELOG (both kinds)
+## C. Indexes and decisions (both kinds)
+
+- A design was agreed or replaced → `docs/specs/README.md` (new row, or the old spec's status set to "Superseded by …").
+- A real decision was made → ADR in `docs/decisions.md`.
+- An open item was finished or found → tick or add it in `TODO.md`; a milestone finished → `docs/roadmap.md`.
+- An endpoint, env variable or port changed → `docs/api-spec.md` / `docs/environments.md` and the service `README.md`.
+
+## D. CHANGELOG (both kinds)
 
 Only when the work is merged into `main`: add a short user-facing line under `## Unreleased` in `CHANGELOG.md` (what now works differently, not how).
 

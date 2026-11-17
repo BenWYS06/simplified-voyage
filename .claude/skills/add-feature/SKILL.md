@@ -12,6 +12,8 @@ The booking refactor has its own plan (`docs/booking-refactor/`) and uses `/impl
 - If the request can be read two very different ways, ask before planning.
 
 ## 2. Write the plan
+Larger features need a design first: write `docs/specs/YYYY-MM-DD-<feature-name>-design.md` (intent, goals, non-goals, the options and the choice) and add it to `docs/specs/README.md`. Then the plan. The `feature-planner` agent can draft the plan from the code.
+
 Create `docs/plans/YYYY-MM-DD-<feature-name>.md`:
 
 ```markdown
@@ -37,10 +39,12 @@ Summarise the plan in a few lines and **wait for the user's OK**. Change the pla
 ## 4. Implement task by task
 - Branch `feat/<feature-name>` from an up-to-date `main`.
 - For each task: write the code (short purpose comments on new pieces), run `/verify-build`, tick the task in the plan.
+- Bigger features can be split: `backend-dev` agent for the backend tasks, then `web-dev` for the frontend tasks, both working from the plan's API contract.
 - Contract change → fix every caller in the same task (`.claude/rules/api-contract.md`).
 - Touches seats, booking status, payments, consumers or jobs → run the `concurrency-reviewer` agent.
 
 ## 5. Finish
-- Run the `code-reviewer` agent on the whole diff and fix what it finds (or note why not).
+- Run the `qa-agent` (build + contract + config check) and the `code-reviewer` agent on the whole diff; fix what they find (or note why not).
+- A real design decision made along the way → add an ADR to `docs/decisions.md`.
 - `/progress-update` → plan status **DONE** in `docs/plans/README.md`.
 - `/ship-pr`.
